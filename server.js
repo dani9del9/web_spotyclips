@@ -17,15 +17,21 @@ function fetch(url, opts = {}, redirects = 5) {
       family: 4,
       timeout: 20000,
     }, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirects > 0) {
+      const loc = res.headers.location ? new URL(res.headers.location, url).toString() : null;
+      if (res.statusCode >= 300 && res.statusCode < 400 && loc && redirects > 0) {
         res.resume();
-        return resolve(fetch(new URL(res.headers.location, url).toString(), opts, redirects - 1));
+        // Una redirección de YouTube a consentimiento/captcha no lleva a resultados: no la seguimos
+        if (/consent\.|google\.com\/sorry/.test(loc)) {
+          return resolve({ ok: false, status: res.statusCode, location: loc.split('?')[0], text: async () => '', json: async () => ({}) });
+        }
+        const next = (res.statusCode === 303 || res.statusCode === 302) ? { ...opts, method: 'GET', body: undefined } : opts;
+        return resolve(fetch(loc, next, redirects - 1));
       }
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
         const body = Buffer.concat(chunks).toString('utf8');
-        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode,
+        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, location: loc,
           text: async () => body, json: async () => JSON.parse(body) });
       });
     });
@@ -190,14 +196,52 @@ function scoreVideo(v, title, artists) {
   return s;
 }
 
+// Cola: como mucho 2 búsquedas a la vez en YouTube y reintentos con espera,
+// porque desde servidores en la nube YouTube corta si se le pide mucho seguido.
+let ytActive = 0;
+const ytQueue = [];
+function ytSlot() {
+  return new Promise((resolve) => {
+    const go = () => { ytActive++; resolve(() => { ytActive--; ytQueue.shift()?.(); }); };
+    if (ytActive < 2) go(); else ytQueue.push(go);
+  });
+}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function searchYouTube(query) {
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=EgIQAQ%253D%253D`; // solo vídeos
-  const r = await fetch(url, { headers: HEADERS });
-  if (!r.ok) throw new Error(`YouTube respondió ${r.status}`);
-  const html = await r.text();
-  const m = html.match(/var ytInitialData\s*=\s*(\{[\s\S]*?\});\s*<\/script>/) || html.match(/ytInitialData"\]\s*=\s*(\{[\s\S]*?\});/);
-  if (!m) throw new Error('No se pudo leer la búsqueda de YouTube');
-  const data = JSON.parse(m[1]);
+  const release = await ytSlot();
+  try {
+    let lastErr;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try { return await searchYouTubeOnce(query); }
+      catch (e) { lastErr = e; console.warn(`YouTube intento ${attempt} falló (${query}): ${e.message}`); await sleep(700 * attempt); }
+    }
+    throw lastErr;
+  } finally { release(); }
+}
+
+// Prueba los métodos en orden hasta que uno funcione:
+//  1. API oficial de YouTube (solo si hay clave en YT_API_KEY o config.json "youtubeApiKey")
+//  2. API JSON interna de la web de YouTube (no pasa por la pantalla de cookies)
+//  3. HTML de la página de resultados (el método original, funciona bien en local)
+const YT_API_KEY = process.env.YT_API_KEY || config.youtubeApiKey || '';
+
+async function searchYouTubeOnce(query) {
+  const methods = [];
+  if (YT_API_KEY) methods.push(['api-oficial', searchViaDataApi]);
+  methods.push(['innertube', searchViaInnertube], ['html', searchViaHtml]);
+  const errors = [];
+  for (const [name, fn] of methods) {
+    try {
+      const res = await fn(query);
+      if (res.length) return res;
+      errors.push(`${name}: sin resultados`);
+    } catch (e) { errors.push(`${name}: ${e.message}`); }
+  }
+  throw new Error(errors.join(' | '));
+}
+
+function mapRenderers(data) {
   const renderers = [];
   findVideoRenderers(data, renderers);
   return renderers.map((v) => ({
@@ -206,6 +250,46 @@ async function searchYouTube(query) {
     channel: txt(v.ownerText) || txt(v.longBylineText),
     length: txt(v.lengthText),
     views: txt(v.shortViewCountText),
+  }));
+}
+
+async function searchViaInnertube(query) {
+  const body = JSON.stringify({
+    context: { client: { clientName: 'WEB', clientVersion: '2.20251101.00.00', hl: 'es', gl: 'ES' } },
+    query,
+    params: 'EgIQAQ%3D%3D', // solo vídeos
+  });
+  const r = await fetch('https://www.youtube.com/youtubei/v1/search?prettyPrint=false', {
+    method: 'POST',
+    headers: { ...HEADERS, 'Content-Type': 'application/json', 'X-Youtube-Client-Name': '1', 'X-Youtube-Client-Version': '2.20251101.00.00', Origin: 'https://www.youtube.com' },
+    body,
+  });
+  if (!r.ok) throw new Error(`respondió ${r.status}${r.location ? ' → ' + r.location : ''}`);
+  return mapRenderers(await r.json());
+}
+
+async function searchViaHtml(query) {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=EgIQAQ%253D%253D`;
+  const r = await fetch(url, { headers: HEADERS });
+  if (!r.ok) throw new Error(`respondió ${r.status}${r.location ? ' → ' + r.location : ''}`);
+  const html = await r.text();
+  const m = html.match(/var ytInitialData\s*=\s*(\{[\s\S]*?\});\s*<\/script>/) || html.match(/ytInitialData"\]\s*=\s*(\{[\s\S]*?\});/);
+  if (!m) throw new Error('página sin resultados (¿pantalla de cookies o captcha?)');
+  return mapRenderers(JSON.parse(m[1]));
+}
+
+const decodeEntities = (s) => String(s || '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+
+async function searchViaDataApi(query) {
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&q=${encodeURIComponent(query)}&key=${YT_API_KEY}`;
+  const r = await fetch(url, { headers: { 'User-Agent': UA } });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j?.error?.message || `respondió ${r.status}`);
+  return (j.items || []).map((it) => ({
+    videoId: it.id.videoId,
+    title: decodeEntities(it.snippet.title),
+    channel: decodeEntities(it.snippet.channelTitle),
+    length: '', views: '',
   }));
 }
 
