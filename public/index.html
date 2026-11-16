@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpotyClips · videoclips de tus playlists</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Spoty<span>Clips</span></h1>
+    <form id="form">
+      <input id="input" placeholder="Pega el ID o el enlace de una playlist de Spotify" autocomplete="off">
+      <button type="submit">Cargar</button>
+    </form>
+    <div id="mineWrap">
+      <select id="mine"><option value="">📂 Mis listas</option></select>
+      <button id="mineDel" type="button" title="Quitar la lista seleccionada del combo">🗑</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="playerCol">
+      <div id="playerWrap"><div id="player"></div><div id="playerEmpty">Carga una playlist y pulsa ▶ en cualquier canción</div></div>
+      <div id="nowPlaying"></div>
+      <div id="controls">
+        <button id="prev" title="Anterior">⏮</button>
+        <button id="playAll" title="Reproducir todo desde el principio">▶ Reproducir todo</button>
+        <button id="next" title="Siguiente">⏭</button>
+        <label><input type="checkbox" id="shuffle"> Aleatorio</label>
+        <label><input type="checkbox" id="autonext" checked> Pasar solo al siguiente</label>
+      </div>
+    </section>
+
+    <section id="listCol">
+      <div id="plHeader"></div>
+      <div id="progress"></div>
+      <ol id="list"></ol>
+    </section>
+  </main>
+
+  <dialog id="altDialog">
+    <form method="dialog" class="dlgHead">
+      <strong id="altTitle"></strong>
+      <button value="close">✕</button>
+    </form>
+    <div class="dlgSearch">
+      <input id="altQuery" placeholder="Buscar otra cosa en YouTube…">
+      <button id="altSearchBtn" type="button">Buscar</button>
+    </div>
+    <div class="dlgSearch">
+      <input id="altUrl" placeholder="…o pega aquí un enlace de YouTube">
+      <button id="altUrlBtn" type="button">Usar</button>
+    </div>
+    <ul id="altList"></ul>
+  </dialog>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="app.js"></script>
+</body>
+</html>

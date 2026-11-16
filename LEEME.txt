@@ -1,0 +1,37 @@
+SPOTYCLIPS - videoclips de tus playlists de Spotify
+====================================================
+
+Cómo usarlo
+-----------
+1. Doble clic en iniciar.bat (o "node server.js"). Se abre http://localhost:3456
+2. Pega el ID o el enlace de una playlist PÚBLICA de Spotify, por ejemplo:
+      37i9dQZF1DXcBWIGoYBM5M
+      https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=...
+3. Sale la lista de canciones y va buscando el videoclip de cada una en YouTube.
+   - ▶ reproduce esa canción. "Reproducir todo" va pasando de una a otra solas.
+   - 🔄 abre otros resultados de YouTube, una búsqueda libre o un enlace pegado a mano.
+     Lo que elijas a mano se recuerda (se guarda en el navegador).
+   - ↗ abre el vídeo en YouTube.
+   - Si un vídeo no deja reproducirse incrustado, prueba solo la siguiente alternativa.
+
+Cómo funciona
+-------------
+- Canciones: lee la versión "embed" pública de la playlist, sin claves ni login.
+- Vídeos: busca en YouTube "artista canción official video" y puntúa los resultados
+  (premia "official video", canales VEVO o del artista; penaliza lyrics, audio, covers, live...).
+- Las búsquedas se guardan en cache-youtube.json para no repetirlas.
+- No hace falta npm install: no tiene dependencias (Node 18+).
+
+Combo "Mis listas"
+------------------
+Cada playlist que cargas se añade sola al combo de arriba y se recuerda en el navegador.
+Elige una y se carga. 🗑 la quita del combo.
+(Spotify ya no permite listar automáticamente las playlists de un usuario sin iniciar sesión.)
+
+Playlists de más de 100 canciones (opcional)
+--------------------------------------------
+La versión embed de Spotify puede cortar la lista. Si quieres la lista completa,
+crea una app en https://developer.spotify.com/dashboard, copia config.ejemplo.json
+como config.json y pon tu clientId y clientSecret. Si la API falla, usa el embed igualmente.
+
+Puerto: cambia con la variable PORT (por defecto 3456).
