@@ -157,6 +157,7 @@ async function loadPlaylist(input) {
     current = -1;
     $('#plHeader').innerHTML = `${pl.cover ? `<img src="${esc(pl.cover)}">` : ''}<div><h2>${esc(pl.name)}</h2><p>${esc(pl.owner)}${pl.source === 'embed' && tracks.length >= 100 ? ' · (máx. 100 canciones sin claves de API, mira el LEEME)' : ''}</p></div>`;
     renderList(); updateProgress();
+    document.body.classList.remove('empty'); // ya hay playlist: mostrar el reproductor
     searchAll(token);
   } catch (e) {
     $('#progress').textContent = e instanceof TypeError
