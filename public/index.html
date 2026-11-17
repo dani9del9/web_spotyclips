@@ -8,28 +8,23 @@
 </head>
 <body class="empty">
   <header>
-    <h1>Spoty<span>Clips</span></h1>
-    <form id="form">
-      <input id="input" placeholder="Pega el ID o el enlace de una playlist de Spotify" autocomplete="off">
-      <button type="submit">Cargar</button>
-    </form>
-    <div id="mineWrap">
-      <select id="mine"><option value="">📂 Mis listas</option></select>
-      <button id="mineDel" type="button" title="Quitar la lista seleccionada del combo">🗑</button>
+    <div class="brand"><h1>Spoty<span>Clips</span></h1></div>
+    <div class="tools">
+      <form id="form">
+        <input id="input" placeholder="Pega el ID o el enlace de una playlist de Spotify" autocomplete="off">
+        <button type="submit">Cargar</button>
+      </form>
+      <div id="mineWrap">
+        <select id="mine"><option value="">📂 Mis listas</option></select>
+        <button id="mineDel" type="button" title="Quitar la lista seleccionada del combo">🗑</button>
+      </div>
     </div>
   </header>
 
   <main>
     <section id="playerCol">
-      <div id="playerWrap"><div id="player"></div><div id="playerEmpty">Carga una playlist y pulsa ▶ en cualquier canción</div></div>
+      <div id="playerWrap"><div id="player"></div><div id="playerEmpty">Carga una playlist y pulsa en cualquier canción</div></div>
       <div id="nowPlaying"></div>
-      <div id="controls">
-        <button id="prev" title="Anterior">⏮</button>
-        <button id="playAll" title="Reproducir todo desde el principio">▶ Reproducir todo</button>
-        <button id="next" title="Siguiente">⏭</button>
-        <label><input type="checkbox" id="shuffle"> Aleatorio</label>
-        <label><input type="checkbox" id="autonext" checked> Pasar solo al siguiente</label>
-      </div>
     </section>
 
     <section id="listCol">

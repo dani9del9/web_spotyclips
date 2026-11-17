@@ -23,6 +23,8 @@ h1 { margin:0; font-size:28px; font-weight:900; letter-spacing:.5px;
 h1 span { color:inherit; }
 header input, header #mine { background:rgba(255,255,255,.85); border-color:rgba(255,255,255,.9); }
 header #mineDel { background:rgba(255,255,255,.7); border-color:rgba(255,255,255,.9); }
+header .brand { flex:none; }
+header .tools { display:flex; gap:12px; align-items:center; flex:1; flex-wrap:wrap; min-width:0; }
 #form { display:flex; gap:8px; flex:1; min-width:280px; }
 #input { flex:1; }
 #form button { background:var(--primary); border-color:var(--primary); color:#fff; font-weight:600; }
@@ -31,7 +33,6 @@ header #mineDel { background:rgba(255,255,255,.7); border-color:rgba(255,255,255
 #mine { background:var(--card); color:var(--txt); border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:14px; min-width:200px; max-width:320px; cursor:pointer; }
 
 main { display:grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap:20px; padding:20px 24px; }
-@media (max-width: 950px) { main { grid-template-columns:1fr; } }
 /* Sin playlist cargada: no se muestra el reproductor */
 body.empty #playerCol { display:none; }
 body.empty main { grid-template-columns:1fr; max-width:900px; margin:0 auto; }
@@ -42,10 +43,6 @@ body.empty main { grid-template-columns:1fr; max-width:900px; margin:0 auto; }
 #playerEmpty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#aaa; }
 #nowPlaying { margin:12px 2px 6px; font-size:18px; font-weight:600; min-height:24px; }
 #nowPlaying small { display:block; color:var(--mut); font-weight:400; font-size:13px; }
-#controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-#controls label { color:var(--mut); font-size:13px; display:flex; gap:4px; align-items:center; }
-#playAll { background:linear-gradient(90deg, var(--accent), #ffb08a); border-color:transparent; color:#fff; font-weight:600; }
-#playAll:hover { filter:brightness(.95); }
 
 #plHeader { display:flex; gap:14px; align-items:center; margin-bottom:8px; }
 #plHeader img { width:72px; height:72px; border-radius:8px; object-fit:cover; box-shadow:var(--shadow); }
@@ -78,3 +75,33 @@ dialog::backdrop { background:rgba(0,0,0,.35); }
 #altList li:hover { background:var(--hover); }
 #altList img { width:120px; aspect-ratio:16/9; object-fit:cover; border-radius:6px; }
 #altList .m { color:var(--mut); font-size:12px; }
+
+/* ---------- Móvil ---------- */
+@media (max-width: 950px) {
+  /* La página no hace scroll: cabecera y vídeo fijos, solo se desplaza la lista */
+  html, body { height:100%; }
+  body { display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
+  header { position:static; flex:none; display:block; padding:0; background:var(--card); box-shadow:var(--shadow); }
+  header .brand { padding:10px 16px;
+    background:linear-gradient(100deg, var(--sky1) 0%, var(--sky2) 40%, var(--sky3) 68%, var(--peach) 88%, var(--cream) 100%); }
+  h1 { font-size:22px; }
+  header .tools { display:flex; flex-direction:column; align-items:stretch; gap:8px; padding:10px 12px; border-bottom:1px solid var(--border); }
+  #form { min-width:0; }
+  #input { min-width:0; }
+  #mine { flex:1; min-width:0; max-width:none; }
+  header input, header #mine, header #mineDel { background:var(--card); border-color:var(--border); }
+
+  main { display:flex; flex-direction:column; flex:1; min-height:0; padding:0; gap:0; }
+  body.empty main { max-width:none; }
+  #playerCol { position:static; align-self:stretch; flex:none; padding:10px 12px 4px; background:var(--bg); border-bottom:1px solid var(--border); z-index:2; }
+  #nowPlaying { margin:8px 2px 2px; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #nowPlaying small { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #listCol { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 12px 20px; }
+  #plHeader img { width:52px; height:52px; }
+  #plHeader h2 { font-size:17px; }
+
+  #list li { grid-template-columns: 18px 80px minmax(0,1fr) auto; gap:8px; padding:6px; }
+  .thumb { width:80px; }
+  .acts button[data-play] { display:none; } /* en móvil se pulsa la fila entera */
+  .info .t { font-size:14px; }
+}

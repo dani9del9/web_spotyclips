@@ -20,7 +20,7 @@ window.onYouTubeIframeAPIReady = () => {
     playerVars: { autoplay: 1, rel: 0, modestbranding: 1 },
     events: {
       onReady: () => { playerReady = true; if (pendingVideo) { player.loadVideoById(pendingVideo); pendingVideo = null; } },
-      onStateChange: (e) => { if (e.data === YT.PlayerState.ENDED && $('#autonext').checked) next(); },
+      onStateChange: (e) => { if (e.data === YT.PlayerState.ENDED) next(); },
       // 101/150 = el dueño no permite reproducirlo incrustado -> probar alternativa o saltar
       onError: (e) => handleVideoError(e.data),
     },
@@ -59,15 +59,13 @@ async function play(i) {
 
 function next() {
   if (!tracks.length) return;
-  if ($('#shuffle').checked) return play(Math.floor(Math.random() * tracks.length));
   if (current + 1 < tracks.length) play(current + 1);
 }
-function prev() { if (current > 0) play(current - 1); }
 
 // ---------- búsqueda de clips ----------
 async function ensureClip(i, priority = false) {
   const t = tracks[i];
-  if (t.video || t.state === 'none') return;
+  if (t.video || (t.state === 'none' && !t.failed)) return; // si falló por error, se reintenta
   if (overrides[t.key]) { t.video = overrides[t.key]; t.state = 'done'; renderRow(i); return; }
   if (t.promise) return t.promise;
   t.state = 'loading'; renderRow(i);
@@ -77,9 +75,9 @@ async function ensureClip(i, priority = false) {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       t.video = j.best; t.alternatives = j.alternatives || [];
-      t.state = t.video ? 'done' : 'none';
+      t.state = t.video ? 'done' : 'none'; t.failed = false;
     } catch (e) {
-      console.warn(t.title, e); t.state = 'none';
+      console.warn(t.title, e); t.state = 'none'; t.failed = true;
     }
     t.promise = null;
     renderRow(i); updateProgress();
@@ -93,7 +91,11 @@ async function searchAll(token) {
   const worker = async () => {
     while (idx < tracks.length && token === loadToken) await ensureClip(idx++);
   };
-  await Promise.all([worker(), worker(), worker()]);
+  await Promise.all([worker(), worker()]);
+  // Segunda pasada: reintenta las que fallaron por error de conexión
+  for (let i = 0; i < tracks.length && token === loadToken; i++) {
+    if (tracks[i].failed) { await new Promise((r) => setTimeout(r, 1500)); await ensureClip(i); }
+  }
 }
 
 function updateProgress() {
@@ -167,9 +169,6 @@ async function loadPlaylist(input) {
 }
 
 $('#form').addEventListener('submit', (e) => { e.preventDefault(); const v = $('#input').value.trim(); if (v) loadPlaylist(v); });
-$('#playAll').onclick = () => tracks.length && play($('#shuffle').checked ? Math.floor(Math.random() * tracks.length) : 0);
-$('#next').onclick = next;
-$('#prev').onclick = prev;
 
 // ---------- diálogo de alternativas ----------
 let altIndex = -1;
